@@ -6,11 +6,10 @@ using System.Threading.Tasks;
 
 namespace DataBase.Models
 {
-    public class User
+    public class Project
     {
-        public long User_Id { get; set; }
+        public int Id { get; set; }
         public string Name { get; set; }
-        public string Password {  get; set; }
-        public string Email { get; set; }
+        public int CreatedByUserId { get; set; }
     }
 }

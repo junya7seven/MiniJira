@@ -1,0 +1,80 @@
+﻿@model IEnumerable<Project>
+@using DataBase.Models
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body>
+    
+    @if (Model != null && Model.Any())
+    {
+        <div>
+            <h2>Проекты</h2>
+            <div class="projects-container">
+                @foreach (var project in Model)
+                {
+                    <div class="project-card">
+                        <a asp-action="Project" asp-route-projectId="@project.Id">@project.Name</a>
+                    </div>
+                }
+            </div>
+            <button class="btn btn-primary mt-3" onclick="showCreateProjectForm()">+ Добавить проект</button>
+        </div>
+
+        <!-- Форма для создания проекта -->
+        <div id="createProjectForm" style="display:none;">
+            <h3>Создать новый проект</h3>
+            <form asp-action="CreateProject" method="post">
+                <input type="text" name="Name" class="form-control" placeholder="Название проекта" required />
+                <button type="submit" class="btn btn-success mt-2">Создать</button>
+            </form>
+        </div>
+        <style>
+            .projects-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px; /* Отступы между проектами */
+                margin-top: 20px;
+            }
+
+            .project-card {
+                background-color: #f9f9f9;
+                border: 1px solid #ddd;
+                padding: 15px;
+                border-radius: 8px;
+                width: 200px; /* Ширина каждой карточки проекта */
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                transition: transform 0.3s;
+            }
+
+                .project-card:hover {
+                    transform: translateY(-5px); /* Легкий подъем при наведении мыши */
+                }
+
+                .project-card a {
+                    text-decoration: none;
+                    font-weight: bold;
+                    color: #007bff;
+                }
+
+                    .project-card a:hover {
+                        text-decoration: underline;
+                    }
+
+        </style>
+
+        <script>
+            function showCreateProjectForm() {
+                document.getElementById('createProjectForm').style.display = 'block';
+            }
+        </script>
+    }
+    else
+    {
+        <p>Проекты не найдены</p>
+
+    }
+</body>
+</html>

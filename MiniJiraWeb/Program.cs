@@ -6,20 +6,25 @@ using DataBase.Interfaces;
 using DataBase;
 using MiniJiraWeb.Service.DbService;
 using MiniJiraWeb.Models.JwtModel;
+using Microsoft.Extensions.Configuration;
+using Npgsql;
+using System.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Получаем строку подключения из appsettings.json
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddScoped<IDbConnection>(sp =>
+    new NpgsqlConnection(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IDataBaseUser, DataBaseUser>();
 
-// Регистрируем IDataBaseUser с использованием строки подключения
-builder.Services.AddScoped<IDataBaseUser>(provider => new DataBaseUser(connectionString));
+builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<ITaskItemRepository, TaskItemRepository>();
+builder.Services.AddScoped<ISubTaskRepository, SubTaskRepository>();
+
 builder.Services.AddScoped<DbService>();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
-
+builder.Services.AddScoped<MiniJiraService>();
 builder.Services.AddScoped<JwtService>();
 
-// Конфигурация аутентификации JWT
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -52,14 +57,14 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(options =>
 {
-    options.LoginPath = "/Account/Login"; // Указание страницы логина
+    options.LoginPath = "/Account/Login"; 
 });
 
 
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
-
+app.UseStaticFiles();
 app.UseAuthentication(); 
 app.UseAuthorization();  
 

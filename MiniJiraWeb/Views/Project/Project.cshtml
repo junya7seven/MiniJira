@@ -1,0 +1,279 @@
+﻿@model ProjectViewModel
+@using DataBase.Models
+
+
+@if (!User.Identity.IsAuthenticated)
+{
+    <div class="not-authorized">
+        <h1 style="text-align:center;">ВЫ НЕ АВТОРИЗОВАНЫ</h1>
+    </div>
+}
+else
+{
+    <div class="project-header">
+        <h1>@Model.Projects.FirstOrDefault()?.Name</h1>
+    </div>
+
+    <div class="project-tasks">
+        <!-- Колонка ToDo -->
+        <div class="task-column todo" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <h2>ToDo</h2>
+            <ul id="todo-tasks">
+                @foreach (var task in Model.Tasks.Where(t => t.Status == TaskItemStatus.ToDo))
+                {
+                    <li class="task-item" draggable="true" ondragstart="drag(event)" data-task-id="@task.Id" data-task-title="@task.Title">
+                        <span>@task.Title</span>
+                        <button class="gear-btn" data-task-id="@task.Id">⚙️</button> 
+                    </li>
+                }
+            </ul>
+            <button class="add-task-btn" data-status="ToDo">Добавить задачу</button>
+        </div>
+
+        <!-- Колонка InProgress -->
+        <div class="task-column inprogress" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <h2>In Progress</h2>
+            <ul id="inprogress-tasks">
+                @foreach (var task in Model.Tasks.Where(t => t.Status == TaskItemStatus.InProgress))
+                {
+                    <li class="task-item" draggable="true" ondragstart="drag(event)" data-task-id="@task.Id" data-task-title="@task.Title">
+                        <span>@task.Title</span>
+                        <button class="gear-btn" data-task-id="@task.Id">⚙️</button> 
+                    </li>
+                }
+            </ul>
+            <button class="add-task-btn" data-status="InProgress">Добавить задачу</button>
+        </div>
+
+        <!-- Колонка Done -->
+        <div class="task-column done" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <h2>Done</h2>
+            <ul id="done-tasks">
+                @foreach (var task in Model.Tasks.Where(t => t.Status == TaskItemStatus.Done))
+                {
+                    <li class="task-item" draggable="true" ondragstart="drag(event)" data-task-id="@task.Id" data-task-title="@task.Title">
+                        <span>@task.Title</span>
+                        <button class="gear-btn" data-task-id="@task.Id">⚙️</button> 
+                    </li>
+                }
+            </ul>
+            <button class="add-task-btn" data-status="Done">Добавить задачу</button>
+        </div>
+    </div>
+
+    <div>
+        <p>Назад к проектам</p>
+        <button class="add-task-btn" data-status="Done">Добавить задачу</button>
+    </div>
+
+    <!-- Модальное окно для добавления задачи -->
+    <div id="task-modal" style="display:none;">
+        <h3>Добавить задачу</h3>
+        <form id="create-task-form" asp-controller="Project" asp-action="CreateTask" method="post">
+            <input type="hidden" id="project-id" name="projectId" value="@Model.Projects.FirstOrDefault()?.Id" />
+            <input type="hidden" id="task-status" name="status" />
+            <input type="text" name="title" placeholder="Название задачи" required>
+            <textarea name="description" placeholder="Описание"></textarea>
+            <button type="submit">Сохранить</button>
+            <button type="button" id="close-modal-btn">Закрыть</button> 
+        </form>
+    </div>
+
+    <!-- Модальное окно для отображения деталей задачи -->
+    <div id="view-task-modal" style="display:none;">
+        <h3 id="task-title"></h3>
+        <p id="task-description"></p>
+        <button id="delete-task-btn">Удалить задачу</button>
+        <button type="button" id="close-view-modal-btn">Закрыть</button>
+    </div>
+}
+
+
+
+@section Styles {
+    <style>
+        .project-tasks {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .task-column {
+            width: 30%;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            color: #fff; /* Цвет текста для лучшей видимости на фоне */
+        }
+
+        .task-column h2 {
+            text-align: center;
+        }
+
+        .task-column.todo {
+            background-color: #99EE6B; 
+        }
+
+        .task-column.inprogress {
+            background-color: #7AEE3C; /* Голубой */
+        }
+
+        .task-column.done {
+            background-color: #4DDE00; 
+        }
+
+        .task-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: move; 
+        }
+
+        .add-task-btn {
+            display: block;
+            margin: 10px auto;
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .add-task-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+}
+
+
+
+@section Scripts {
+    <script>
+        function allowDrop(event) {
+            event.preventDefault();
+        }
+
+        function drag(event) {
+            event.dataTransfer.setData("taskId", event.target.getAttribute("data-task-id"));
+            event.dataTransfer.setData("taskTitle", event.target.getAttribute("data-task-title"));
+            }
+
+        function drop(event) {
+            event.preventDefault();
+            const taskId = event.dataTransfer.getData("taskId");
+            const taskTitle = event.dataTransfer.getData("taskTitle");
+                const targetColumn = event.target.closest('.task-column');
+            const targetList = targetColumn.querySelector('ul');
+
+            if (taskId && taskTitle) {
+                    const taskItem = document.querySelector(`[data-task-id='${taskId}']`);
+                if (taskItem) {
+                    targetList.appendChild(taskItem);
+
+                    // Получаем новый статус на основе заголовка колонки
+                    const newStatus = targetColumn.querySelector('h2').innerText.trim();
+                    updateTaskStatus(taskTitle, newStatus);  // Передаем название задачи и новый статус
+                }
+            }
+        }
+
+            function updateTaskStatus(taskTitle, newStatus) {
+                const requestBody = {
+                    taskTitle: taskTitle,
+                    newStatus: newStatus
+                };
+
+                fetch('/Project/UpdateTaskStatus', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody) // Преобразуем объект в JSON
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Status updated:', data);
+                })
+                .catch(error => {
+                    console.error('Error updating status:', error);
+                });
+            }
+
+        // Открытие модального окна для добавления задачи
+        document.querySelectorAll('.add-task-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const status = this.getAttribute('data-status');
+                document.getElementById('task-status').value = status;
+
+                // Открытие модального окна
+                const modal = document.getElementById('task-modal');
+                modal.style.display = 'block';
+            });
+        });
+
+        // Закрытие модального окна
+        document.getElementById('close-modal-btn').addEventListener('click', function () {
+            document.getElementById('task-modal').style.display = 'none';
+        });
+
+        // Добавление функционала для кнопок шестеренка
+        document.querySelectorAll('.gear-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const taskId = this.getAttribute('data-task-id');
+        
+                // Получаем детали задачи по ID
+                fetch(`/Project/GetTaskDetails?taskId=${taskId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('task-title').innerText = data.title;
+                        document.getElementById('task-description').innerText = data.description;
+                        document.getElementById('view-task-modal').style.display = 'block';
+                
+                        // Обработчик для кнопки удаления
+                        document.getElementById('delete-task-btn').onclick = function () {
+                            deleteTask(data.title); // Передаем название задачи
+                        };
+                    })
+                    .catch(error => {
+                        console.error('Error fetching task details:', error);
+                    });
+            });
+        });
+
+        // Закрытие модального окна для просмотра
+        document.getElementById('close-view-modal-btn').addEventListener('click', function () {
+            document.getElementById('view-task-modal').style.display = 'none';
+        });
+
+        // Функция удаления задачи
+        // Функция удаления задачи
+        function deleteTask(taskName) {
+            fetch('/Project/DeleteTask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(taskName) // Передаем имя задачи как строку
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Перезагрузка страницы, чтобы обновить интерфейс
+                    location.reload();
+                } else {
+                    console.error('Error deleting task:', response.statusText);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting task:', error);
+            });
+        }
+
+
+    </script>
+}
