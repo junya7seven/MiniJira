@@ -27,7 +27,7 @@ namespace MiniJiraWeb.Service.DbService
             return false;
         }
 
-        public async Task<bool> LoginUser(LoginUser model)
+        public async Task<User?> LoginUser(LoginUser model)
         {
             var user = new User()
             {
@@ -35,11 +35,7 @@ namespace MiniJiraWeb.Service.DbService
                 Email = model.Email,
                 Password = model.Password,
             };
-            if(await _dbUser.GetVerifyUserAsync(user) != null)
-            {
-                return true;
-            }
-            return false;
+            return await _dbUser.GetVerifyUserAsync(user);
         }
     }
 }

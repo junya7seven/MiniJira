@@ -4,15 +4,17 @@ using DataBase.Interfaces;
 using DataBase.Models;
 using DataBase.SQL;
 using Npgsql;
+using System.Data;
 
 namespace DataBase
 {
     public class DataBaseUser : IDataBaseUser
     {
         private readonly string _connectionString;
-        public DataBaseUser(string connectionString)
+        private readonly IDbConnection _dbConnection;
+        public DataBaseUser(IDbConnection dbConnection)
         {
-            _connectionString = connectionString;
+            _dbConnection = dbConnection;
         }
 
         public async Task<bool> InsertUserAsync(User model)
@@ -21,11 +23,7 @@ namespace DataBase
             var SQL = SQLrequest.InsertUserSQL();
             try
             {
-                using (var connection = new NpgsqlConnection(_connectionString))
-                {
-                    await connection.OpenAsync();
-                    return await connection.ExecuteAsync(SQL, model) > 0;
-                }
+                return await _dbConnection.ExecuteAsync(SQL, model) > 0;
             }
             catch(Exception)
             {
@@ -39,16 +37,14 @@ namespace DataBase
             var SQL = SQLrequest.GetUserByNameSQL();
             try
             {
-                using(var connection = new NpgsqlConnection(_connectionString))
-                {
-                    await connection.OpenAsync();
-                    var user = await connection.QuerySingleOrDefaultAsync<User>(SQL, new { Email = model.Email });
-                    if (HashPassword.VerifyPassword(model.Password, user.Password))
-                    {
-                        return user;
-                    }
-                    return null;
-                }
+                
+                 var user = await _dbConnection.QuerySingleOrDefaultAsync<User>(SQL, new { Email = model.Email });
+                 if (HashPassword.VerifyPassword(model.Password, user.Password))
+                 {
+                    return user;
+                 }
+                 return null;
+                
             }
             catch (Exception)
             {

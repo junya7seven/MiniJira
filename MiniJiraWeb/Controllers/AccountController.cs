@@ -40,11 +40,12 @@ namespace MiniJiraWeb.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginUser model)
         {
-            if (model.Email != null || model.Password != null)
+            if (!string.IsNullOrEmpty(model.Email) && !string.IsNullOrEmpty(model.Password))
             {
-                if(await _db.LoginUser(model))
+                var user = await _db.LoginUser(model);
+                if (user != null)
                 {
-                    var token = await _jwtService.GenerateToken(model);
+                    var token = await _jwtService.GenerateToken(user);
                     Response.Cookies.Append("access_token", token, new CookieOptions
                     {
                         HttpOnly = true,
@@ -52,12 +53,32 @@ namespace MiniJiraWeb.Controllers
                         SameSite = SameSiteMode.Strict,
                         Expires = DateTimeOffset.UtcNow.AddMinutes(60)
                     });
-                    return RedirectToAction("Index", "Home");
+                    return RedirectToAction("Index", "Project");
                 }
                 ModelState.AddModelError(string.Empty, "Неверный логин или пароль.");
             }
+            else
+            {
+                ModelState.AddModelError(string.Empty, "Введите корректные Email и Пароль.");
+            }
             return View(model);
-
         }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Logout()
+        {
+            // Удаляем токен, установив его срок действия в прошлое
+            Response.Cookies.Append("access_token", string.Empty, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddMinutes(-1)
+            });
+
+            // Перенаправляем на страницу входа
+            return RedirectToAction("Login", "Account");
+        }
+
     }
 }

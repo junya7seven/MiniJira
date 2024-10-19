@@ -16,12 +16,14 @@ namespace MiniJiraWeb.Service.JwtService
         {
             _jwtSettings = jwtSettings.Value;
         }
-        public async Task<string> GenerateToken(LoginUser model)
+        public async Task<string> GenerateToken(User model)
         {
             var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Email, model.Email),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("UserId", model.User_Id.ToString()),
+            new Claim(ClaimTypes.Name, model.Name)
         };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
